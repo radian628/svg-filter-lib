@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "@xyflow/react": "^12.6.4",
+    "esbuild": "^0.25.5",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.6"
+  }
+}

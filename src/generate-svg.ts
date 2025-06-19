@@ -31,11 +31,17 @@ export function generateSingleSvgFilter(
   const node = nodes.find((n) => n.id === nodeId)!;
   const filter = node.data.filter;
 
-  return `<${filter._overrideId ?? filter.node} result="${nodeId}" ${
+  const common = `result="${nodeId}" ${
     inputs[0] ? `in="${getInputId(inputs[0], nodes)}"` : ""
-  } ${
-    inputs[1] ? `in2="${getInputId(inputs[1], nodes)}"` : ""
-  } ${Object.entries(filter)
+  } ${inputs[1] ? `in2="${getInputId(inputs[1], nodes)}"` : ""}`;
+
+  if (node.data.filterType === "xml") {
+    return (node.data.filter.value ?? "").replace("$paste", common);
+  }
+
+  return `<${filter._overrideId ?? filter.node} ${common} ${Object.entries(
+    filter
+  )
     .map(([k, v]) => {
       if (k === "node") return "";
       if (k === "_overrideId") return "";
@@ -63,4 +69,21 @@ export function generateSvgFilter(
   outstr += generateSingleSvgFilter(nodes, edges, nodeId);
 
   return outstr;
+}
+
+export function parseParameters(params: string) {
+  return params.split("\n").flatMap((p) => {
+    const [src, dst] = p.split("=").map((s) => s.trim());
+    if (!src || !dst) return [];
+    return [{ src, dst }];
+  });
+}
+
+export function applyParameters(str: string, params: string) {
+  const actualParams = parseParameters(params);
+
+  for (const p of actualParams) {
+    str = str.replaceAll(p.src, p.dst);
+  }
+  return str;
 }

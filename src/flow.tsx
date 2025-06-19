@@ -52,7 +52,10 @@ const nodeTypes = {
   filter: GenericFilterNode,
 };
 
-export const svgContext = React.createContext("");
+export const svgContext = React.createContext({
+  svg: "",
+  parameters: "",
+});
 
 function Flow() {
   const [nodes, setNodes] = useState(initialNodes);
@@ -90,15 +93,25 @@ function Flow() {
     edgeReconnectSuccessful.current = true;
   }, []);
 
-  const [svgTemplate, setSvgTemplate] =
-    useState(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" >
-  <filter id="f@FILTER_ID">@FILTER_SOURCE</filter><g filter="url('#f@FILTER_ID')">
-<rect x=0 y=0 width=100% height=100% fill=transparent></rect>
- <text x=50 y=50>Test</text> 
-  </g></svg>`);
+  const [svgTemplate, setSvgTemplate] = useState(`<svg 
+  xmlns="http://www.w3.org/2000/svg" 
+  xmlns:xlink="http://www.w3.org/1999/xlink" 
+  viewBox="0 0 100 100"
+>
+  <filter id="f@FILTER_ID">
+    @FILTER_SOURCE
+  </filter>
+  <g filter="url('#f@FILTER_ID')">
+    <rect x=0 y=0 width=100% height=100% fill=transparent></rect>
+    <text x=50 y=50>Test</text> 
+  </g>
+</svg>`);
+
+  const [parameters, setParameters] = useState("");
+  const [configuration, setConfiguration] = useState("");
 
   return (
-    <svgContext.Provider value={svgTemplate}>
+    <svgContext.Provider value={{ svg: svgTemplate, parameters }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -130,13 +143,56 @@ function Flow() {
       >
         Add Filter
       </button>
-      <textarea
-        id="svg-template"
-        value={svgTemplate}
-        onInput={(e) => {
-          setSvgTemplate(e.currentTarget.value);
-        }}
-      ></textarea>
+      <div id="import-export">
+        <textarea
+          value={configuration}
+          onInput={(e) => {
+            setConfiguration(e.currentTarget.value);
+          }}
+        ></textarea>
+        <br />
+        <button
+          onClick={() => {
+            const config = JSON.parse(configuration);
+            setNodes(config.nodes);
+            setEdges(config.edges);
+            setSvgTemplate(config.svgTemplate);
+            setParameters(config.parameters);
+          }}
+        >
+          Import Configuration
+        </button>
+        <button
+          onClick={() => {
+            setConfiguration(
+              JSON.stringify({
+                nodes,
+                edges,
+                svgTemplate,
+                parameters,
+              })
+            );
+          }}
+        >
+          Export Configuration
+        </button>
+      </div>
+      <div id="textareas">
+        <textarea
+          id="svg-template"
+          value={svgTemplate}
+          onInput={(e) => {
+            setSvgTemplate(e.currentTarget.value);
+          }}
+        ></textarea>
+        <textarea
+          id="parameters"
+          value={parameters}
+          onInput={(e) => {
+            setParameters(e.currentTarget.value);
+          }}
+        ></textarea>
+      </div>
     </svgContext.Provider>
   );
 }

@@ -10,7 +10,11 @@ import {
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import React from "react";
 import { FF, makeCSSFilter } from "./lib";
-import { generateSvgFilter } from "./generate-svg";
+import {
+  applyParameters,
+  generateSvgFilter,
+  parseParameters,
+} from "./generate-svg";
 import { FieldSet, StringField } from "./StringField";
 import "./GenericFilterNode.css";
 import { svgContext } from "./flow";
@@ -34,7 +38,8 @@ export type FilterType =
   | "feComposite"
   | "feConvolveMatrix"
   | "source"
-  | "feFlood";
+  | "feFlood"
+  | "xml";
 
 export type GenericFilterNodeType = Node<
   { filter: FF; filterType: FilterType },
@@ -58,24 +63,53 @@ export default function GenericFilterNode(
   const [data, setData] = useState(JSON.stringify(props.data.filter, null, 2));
 
   const svgRef = useRef<HTMLDivElement>(null);
-  const localFilterId = useRef<number>(filtercounter);
+
+  function getSvg(index: number, applyReplacements: boolean) {
+    const filter = generateSvgFilter(nodes, edges, new Set(), props.id);
+
+    let svgstr = svg.svg;
+
+    if (props.data.filterType === "source") {
+      svgstr = svgstr.replaceAll("url('#f@FILTER_ID')", "");
+    } else {
+      svgstr = svgstr
+        .replaceAll("@FILTER_ID", index.toString())
+        .replaceAll("@FILTER_SOURCE", filter);
+    }
+
+    return applyReplacements ? applyParameters(svgstr, svg.parameters) : svgstr;
+  }
+
+  function getSvgFilterURI(index: number) {
+    const filter = generateSvgFilter(nodes, edges, new Set(), props.id);
+
+    const params = parseParameters(svg.parameters);
+
+    let svgstr = svg.svg;
+
+    if (props.data.filterType === "source") {
+      svgstr = svgstr.replaceAll("url('#f@FILTER_ID')", "");
+    } else {
+      svgstr = svgstr
+        .replaceAll("@FILTER_ID", index.toString())
+        .replaceAll("@FILTER_SOURCE", filter);
+    }
+
+    for (const p of params) {
+      const split = svgstr.split(p.src);
+      svgstr = split.map((s) => encodeURIComponent(s)).join(p.src);
+    }
+
+    return `data:image/svg+xml;utf8,${svgstr}#f${index.toString()}`;
+  }
 
   useEffect(() => {
     const filter = generateSvgFilter(nodes, edges, new Set(), props.id);
 
-    filtercounter++;
-
     if (svgRef.current) {
       // svgRef.current.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" >
       // <filter id="f${filtercounter}">${filter}</filter><rect fill="white" width="100%" height="100%" filter="url('#f${filtercounter}')"></rect></svg>`;
-      localFilterId.current = filtercounter;
-      if (props.data.filterType === "source") {
-        svgRef.current.innerHTML = svg.replaceAll("url('#f@FILTER_ID')", "");
-      } else {
-        svgRef.current.innerHTML = svg
-          .replaceAll("@FILTER_ID", filtercounter.toString())
-          .replaceAll("@FILTER_SOURCE", filter);
-      }
+      svgRef.current.innerHTML = getSvg(filtercounter++, true);
     }
   }, [nodes, edges]);
 
@@ -124,6 +158,10 @@ export default function GenericFilterNode(
           type === "source"
             ? {
                 _overrideId: "SourceGraphic",
+              }
+            : type === "xml"
+            ? {
+                value: `<feFlood @params flood-color="red">`,
               }
             : {
                 node: type === "json" ? "feFlood" : type,
@@ -247,6 +285,15 @@ export default function GenericFilterNode(
         ]}
       ></FieldSet>
     );
+  } else if (props.data.filterType === "xml") {
+    inputCount = 2;
+    interactable = (
+      <FieldSet
+        filter={filter}
+        updateFilter={updateFilter}
+        fields={[["value", "", { textarea: true, fontSize: 0.5 }]]}
+      ></FieldSet>
+    );
   } else {
     inputCount = 2;
   }
@@ -258,18 +305,14 @@ export default function GenericFilterNode(
         <div className="copy-buttons">
           <button
             onClick={() => {
-              navigator.clipboard.writeText(svgRef.current?.innerHTML ?? "");
+              navigator.clipboard.writeText(getSvg(0, false));
             }}
           >
             Copy SVG
           </button>
           <button
             onClick={() => {
-              navigator.clipboard.writeText(
-                `data:image/svg+xml,${encodeURIComponent(
-                  svgRef.current?.innerHTML ?? ""
-                )}#f${localFilterId.current}`
-              );
+              navigator.clipboard.writeText(getSvgFilterURI(0));
             }}
           >
             Copy URI
@@ -292,6 +335,7 @@ export default function GenericFilterNode(
           <option value="feComposite">Composite</option>
           <option value="feConvolveMatrix">Convolve</option>
           <option value="feFlood">Flood</option>
+          <option value="xml">XML</option>
         </select>
         {interactable}
       </div>

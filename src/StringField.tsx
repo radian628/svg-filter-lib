@@ -1,5 +1,5 @@
 import { FF } from "./lib";
-import React from "react";
+import React, { useState } from "react";
 
 export function StringField(props: {
   label: string;
@@ -7,30 +7,80 @@ export function StringField(props: {
   filter: FF;
   updateFilter: (ff: FF) => void;
   textarea?: boolean;
+  fontSize?: number;
 }) {
+  const fontSize = props.fontSize
+    ? `${(props.fontSize * 100).toString()}%`
+    : `60%`;
+
+  const [selectStart, setSelectStart] = useState(0);
+  const [selectEnd, setSelectEnd] = useState(0);
+
+  function updateFilter(v: string) {
+    props.updateFilter({
+      ...props.filter,
+      [props.field]: v,
+    });
+  }
+
   return (
-    <div style={{ display: "flex", width: "100%", fontSize: "60%" }}>
-      <label>{props.label}&nbsp;</label>
+    <div
+      style={{
+        display: "flex",
+        width: "100%",
+      }}
+    >
+      <label style={{ fontSize }}>{props.label}&nbsp;</label>
       {props.textarea ? (
         <textarea
-          style={{ width: "100%", height: "80px" }}
+          ref={(e) => {
+            if (e) {
+              e.selectionStart = selectStart;
+              e.selectionEnd = selectEnd;
+            }
+          }}
+          onSelect={(e) => {
+            setSelectStart(e.currentTarget.selectionStart);
+            setSelectEnd(e.currentTarget.selectionEnd);
+          }}
+          style={{
+            width: "100%",
+            height: "80px",
+            fontSize,
+          }}
           value={props.filter[props.field]?.toString() ?? ""}
           onInput={(e) => {
-            props.updateFilter({
-              ...props.filter,
-              [props.field]: e.currentTarget.value,
-            });
+            updateFilter(e.currentTarget.value);
+            setSelectStart(e.currentTarget.selectionStart);
+            setSelectEnd(e.currentTarget.selectionEnd);
           }}
         ></textarea>
       ) : (
         <input
-          style={{ width: "100%", fontSize: "60%" }}
+          ref={(e) => {
+            if (e) {
+              e.selectionStart = selectStart;
+              e.selectionEnd = selectEnd;
+            }
+          }}
+          onSelect={(e) => {
+            setSelectStart(e.currentTarget.selectionStart ?? 0);
+            setSelectEnd(
+              e.currentTarget.selectionEnd ??
+                e.currentTarget.selectionStart ??
+                0
+            );
+          }}
+          style={{
+            width: "100%",
+
+            fontSize,
+          }}
           value={props.filter[props.field]?.toString() ?? ""}
           onInput={(e) => {
-            props.updateFilter({
-              ...props.filter,
-              [props.field]: e.currentTarget.value,
-            });
+            updateFilter(e.currentTarget.value);
+            setSelectStart(e.currentTarget.selectionStart ?? 0);
+            setSelectEnd(e.currentTarget.selectionEnd ?? 0);
           }}
         ></input>
       )}
@@ -41,7 +91,10 @@ export function StringField(props: {
 export function FieldSet(props: {
   filter: FF;
   updateFilter: (ff: FF) => void;
-  fields: ([string, string] | [string, string, { textarea?: boolean }])[];
+  fields: (
+    | [string, string]
+    | [string, string, { textarea?: boolean; fontSize?: number }]
+  )[];
 }) {
   return (
     <>
@@ -52,6 +105,8 @@ export function FieldSet(props: {
           filter={props.filter}
           updateFilter={props.updateFilter}
           textarea={config?.textarea}
+          fontSize={config?.fontSize}
+          key={field}
         ></StringField>
       ))}
     </>

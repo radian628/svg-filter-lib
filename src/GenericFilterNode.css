@@ -45,17 +45,29 @@
     drop-shadow(0 0 3px white);
 }
 
-#svg-template {
+#textareas {
   width: 100vw;
   position: absolute;
   bottom: 0;
   left: 0;
   height: 10vh;
-  resize: none;
+  justify-content: stretch;
+  display: flex;
+
+  textarea {
+    resize: none;
+    width: 50vw;
+  }
 }
 
 #add-filter {
   top: 0;
   left: 0;
+  position: absolute;
+}
+
+#import-export {
+  top: 0;
+  right: 0;
   position: absolute;
 }

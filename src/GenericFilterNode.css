@@ -70,6 +70,7 @@
   top: 0;
   left: 0;
   position: absolute;
+  font-size: 200%;
 }
 
 #import-export {
@@ -80,4 +81,21 @@
 
 body {
   overflow: hidden;
+}
+
+#settings-menu {
+  top: 0;
+  right: 0;
+  position: absolute;
+  height: 100vh;
+
+  #submenu {
+    height: 100vh;
+  }
+
+  textarea.fullsize {
+    height: 100%;
+    width: 100%;
+    resize: none;
+  }
 }

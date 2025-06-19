@@ -66,6 +66,10 @@ try {
   );
 } catch {}
 
+type Settings = {
+  backgroundColor?: string;
+};
+
 function Flow() {
   const [nodes, setNodes] = useState(savedEditorData.nodes ?? initialNodes);
   const [edges, setEdges] = useState(savedEditorData.edges ?? initialEdges);
@@ -125,6 +129,92 @@ function Flow() {
   );
   const [configuration, setConfiguration] = useState("");
 
+  const [settings, setSettings] = useState<Settings>({});
+
+  const [submenuType, setSubmenuType] = useState<
+    "svg" | "parameters" | "import-export" | "settings"
+  >("svg");
+
+  let submenu = <></>;
+
+  if (submenuType === "svg") {
+    submenu = (
+      <textarea
+        id="svg-template"
+        className="fullsize"
+        value={svgTemplate}
+        onInput={(e) => {
+          setSvgTemplate(e.currentTarget.value);
+        }}
+      ></textarea>
+    );
+  } else if (submenuType === "parameters") {
+    submenu = (
+      <textarea
+        className="fullsize"
+        id="parameters"
+        value={parameters}
+        onInput={(e) => {
+          setParameters(e.currentTarget.value);
+        }}
+      ></textarea>
+    );
+  } else if (submenuType === "import-export") {
+    submenu = (
+      <>
+        <p>Copy/Paste Configuration Here</p>
+        <textarea
+          value={configuration}
+          onInput={(e) => {
+            setConfiguration(e.currentTarget.value);
+          }}
+        ></textarea>
+        <br />
+        <button
+          onClick={() => {
+            const config = JSON.parse(configuration);
+            setNodes(config.nodes);
+            setEdges(config.edges);
+            setSvgTemplate(config.svgTemplate);
+            setParameters(config.parameters);
+          }}
+        >
+          Import Configuration
+        </button>
+        <button
+          onClick={() => {
+            setConfiguration(
+              JSON.stringify({
+                nodes,
+                edges,
+                svgTemplate,
+                parameters,
+              })
+            );
+          }}
+        >
+          Export Configuration
+        </button>
+      </>
+    );
+  } else if (submenuType === "settings") {
+    submenu = (
+      <>
+        <label>Background Color</label>
+        <input
+          type="color"
+          value={settings.backgroundColor ?? "#ffffff"}
+          onInput={(e) => {
+            setSettings({
+              ...settings,
+              backgroundColor: e.currentTarget.value,
+            });
+          }}
+        ></input>
+      </>
+    );
+  }
+
   useEffect(() => {
     localStorage.setItem(
       "saved-editor-data",
@@ -140,6 +230,7 @@ function Flow() {
   return (
     <svgContext.Provider value={{ svg: svgTemplate, parameters }}>
       <ReactFlow
+        style={{ backgroundColor: settings.backgroundColor ?? "white" }}
         viewport={viewport}
         onViewportChange={setViewport}
         nodes={nodes}
@@ -175,55 +266,18 @@ function Flow() {
       >
         Add Filter
       </button>
-      <div id="import-export">
-        <textarea
-          value={configuration}
-          onInput={(e) => {
-            setConfiguration(e.currentTarget.value);
-          }}
-        ></textarea>
-        <br />
-        <button
-          onClick={() => {
-            const config = JSON.parse(configuration);
-            setNodes(config.nodes);
-            setEdges(config.edges);
-            setSvgTemplate(config.svgTemplate);
-            setParameters(config.parameters);
-          }}
-        >
-          Import Configuration
-        </button>
-        <button
-          onClick={() => {
-            setConfiguration(
-              JSON.stringify({
-                nodes,
-                edges,
-                svgTemplate,
-                parameters,
-              })
-            );
-          }}
-        >
-          Export Configuration
-        </button>
-      </div>
-      <div id="textareas">
-        <textarea
-          id="svg-template"
-          value={svgTemplate}
-          onInput={(e) => {
-            setSvgTemplate(e.currentTarget.value);
-          }}
-        ></textarea>
-        <textarea
-          id="parameters"
-          value={parameters}
-          onInput={(e) => {
-            setParameters(e.currentTarget.value);
-          }}
-        ></textarea>
+      <div id="settings-menu">
+        <div id="tabs">
+          <button onClick={() => setSubmenuType("svg")}>SVG Template</button>
+          <button onClick={() => setSubmenuType("parameters")}>
+            Custom Parameters
+          </button>
+          <button onClick={() => setSubmenuType("settings")}>Settings</button>
+          <button onClick={() => setSubmenuType("import-export")}>
+            Save/Load
+          </button>
+        </div>
+        <div id="submenu">{submenu}</div>
       </div>
     </svgContext.Provider>
   );

@@ -7,9 +7,10 @@ import {
   NodeProps,
   ReactFlow,
   reconnectEdge,
+  Viewport,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import React from "react";
 import GaussianBlurNode from "./GaussianBlurNode";
 import TurbulenceNode from "./TurbulenceNode";
@@ -57,9 +58,18 @@ export const svgContext = React.createContext({
   parameters: "",
 });
 
+let savedEditorData: any;
+
+try {
+  savedEditorData = JSON.parse(
+    localStorage.getItem("saved-editor-data") ?? "{}"
+  );
+} catch {}
+
 function Flow() {
-  const [nodes, setNodes] = useState(initialNodes);
-  const [edges, setEdges] = useState(initialEdges);
+  const [nodes, setNodes] = useState(savedEditorData.nodes ?? initialNodes);
+  const [edges, setEdges] = useState(savedEditorData.edges ?? initialEdges);
+  const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 });
 
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -93,7 +103,9 @@ function Flow() {
     edgeReconnectSuccessful.current = true;
   }, []);
 
-  const [svgTemplate, setSvgTemplate] = useState(`<svg 
+  const [svgTemplate, setSvgTemplate] = useState(
+    savedEditorData.svgTemplate ??
+      `<svg 
   xmlns="http://www.w3.org/2000/svg" 
   xmlns:xlink="http://www.w3.org/1999/xlink" 
   viewBox="0 0 100 100"
@@ -102,17 +114,34 @@ function Flow() {
     @FILTER_SOURCE
   </filter>
   <g filter="url('#f@FILTER_ID')">
-    <rect x=0 y=0 width=100% height=100% fill=transparent></rect>
-    <text x=50 y=50>Test</text> 
+    <rect x="0" y="0" width="100%" height="100%" fill="transparent"></rect>
+    <text x="50" y="50">Test</text> 
   </g>
-</svg>`);
+</svg>`
+  );
 
-  const [parameters, setParameters] = useState("");
+  const [parameters, setParameters] = useState(
+    savedEditorData.parameters ?? ""
+  );
   const [configuration, setConfiguration] = useState("");
+
+  useEffect(() => {
+    localStorage.setItem(
+      "saved-editor-data",
+      JSON.stringify({
+        nodes,
+        edges,
+        parameters,
+        svgTemplate,
+      })
+    );
+  }, [nodes, edges, parameters, svgTemplate]);
 
   return (
     <svgContext.Provider value={{ svg: svgTemplate, parameters }}>
       <ReactFlow
+        viewport={viewport}
+        onViewportChange={setViewport}
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
@@ -136,7 +165,10 @@ function Flow() {
                 filter: {},
                 filterType: "source",
               },
-              position: { x: 25, y: 25 },
+              position: {
+                x: -viewport.x / viewport.zoom,
+                y: -viewport.y / viewport.zoom,
+              },
             },
           ]);
         }}

@@ -32,6 +32,12 @@
     }
     display: flex;
   }
+
+  .delete-button {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
 }
 
 .generic-filter-node:hover .interactable-container {
@@ -70,4 +76,8 @@
   top: 0;
   right: 0;
   position: absolute;
+}
+
+body {
+  overflow: hidden;
 }

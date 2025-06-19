@@ -62,7 +62,7 @@ export default function GenericFilterNode(
   const { updateNodeData } = rf;
   const [data, setData] = useState(JSON.stringify(props.data.filter, null, 2));
 
-  const svgRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<HTMLCanvasElement>(null);
 
   function getSvg(index: number, applyReplacements: boolean) {
     const filter = generateSvgFilter(nodes, edges, new Set(), props.id);
@@ -103,13 +103,27 @@ export default function GenericFilterNode(
     return `data:image/svg+xml;utf8,${svgstr}#f${index.toString()}`;
   }
 
+  const normalizedSvgRef = useRef<string>("");
+
   useEffect(() => {
     const filter = generateSvgFilter(nodes, edges, new Set(), props.id);
 
-    if (svgRef.current) {
+    const normsvg = getSvg(0, true);
+    if (svgRef.current && normalizedSvgRef.current !== normsvg) {
+      normalizedSvgRef.current = normsvg;
       // svgRef.current.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" >
       // <filter id="f${filtercounter}">${filter}</filter><rect fill="white" width="100%" height="100%" filter="url('#f${filtercounter}')"></rect></svg>`;
-      svgRef.current.innerHTML = getSvg(filtercounter++, true);
+      // svgRef.current.innerHTML = getSvg(filtercounter++, true);
+      const ctx = svgRef.current.getContext("2d");
+      if (!ctx) return;
+      const img = document.createElement("img");
+      img.addEventListener("load", () => {
+        ctx.clearRect(0, 0, 450, 450);
+        ctx.drawImage(img, 0, 0, 450, 450);
+      });
+      img.src = `data:image/svg+xml;utf8,${encodeURIComponent(
+        getSvg(filtercounter++, true)
+      )}`;
     }
   }, [nodes, edges]);
 
@@ -300,9 +314,24 @@ export default function GenericFilterNode(
 
   return (
     <div className="generic-filter-node">
-      <div className="svg-container" ref={svgRef}></div>
+      <canvas
+        className="svg-container"
+        width="450"
+        height="450"
+        ref={svgRef}
+      ></canvas>
       <div className="interactable-container">
-        <div className="copy-buttons">
+        <button
+          className="delete-button"
+          onClick={() => {
+            rf.deleteElements({
+              nodes: [props],
+            });
+          }}
+        >
+          X
+        </button>
+        <div className="top-bar">
           <button
             onClick={() => {
               navigator.clipboard.writeText(getSvg(0, false));

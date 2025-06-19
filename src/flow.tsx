@@ -92,7 +92,10 @@ function Flow() {
 
   const [svgTemplate, setSvgTemplate] =
     useState(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" >
-  <filter id="f@FILTER_ID">@FILTER_SOURCE</filter><rect fill="white" width="100%" height="100%" filter="url('#f@FILTER_ID')"></rect></svg>`);
+  <filter id="f@FILTER_ID">@FILTER_SOURCE</filter><g filter="url('#f@FILTER_ID')">
+<rect x=0 y=0 width=100% height=100% fill=transparent></rect>
+ <text x=50 y=50>Test</text> 
+  </g></svg>`);
 
   return (
     <svgContext.Provider value={svgTemplate}>
@@ -117,8 +120,8 @@ function Flow() {
               id: v4(),
               type: "filter",
               data: {
-                filter: fractalNoise(1, 1, 4, 1),
-                filterType: "feTurbulence",
+                filter: {},
+                filterType: "source",
               },
               position: { x: 25, y: 25 },
             },

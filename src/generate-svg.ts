@@ -1,4 +1,5 @@
 import { Edge, Node } from "@xyflow/react";
+import { FilterType } from "./GenericFilterNode";
 
 export function getInputs(edges: Edge[], nodeId: string) {
   const inputs = Array.from(new Set(edges.filter((e) => e.target === nodeId)));
@@ -9,8 +10,20 @@ export function getInputs(edges: Edge[], nodeId: string) {
   return inputs.map((i) => i.source);
 }
 
+function getInputId(
+  nodeId: string,
+  nodes: Node<{ filter: any; filterType: FilterType }, string>[]
+) {
+  const node = nodes.find((n) => n.id === nodeId)!;
+
+  if (node.data.filterType === "source") {
+    return "SourceGraphic";
+  }
+  return node.id;
+}
+
 export function generateSingleSvgFilter(
-  nodes: Node<{ filter: any }, string>[],
+  nodes: Node<{ filter: any; filterType: FilterType }, string>[],
   edges: Edge[],
   nodeId: string
 ) {
@@ -19,8 +32,10 @@ export function generateSingleSvgFilter(
   const filter = node.data.filter;
 
   return `<${filter._overrideId ?? filter.node} result="${nodeId}" ${
-    inputs[0] ? `in="${inputs[0]}"` : ""
-  } ${inputs[1] ? `in2="${inputs[1]}"` : ""} ${Object.entries(filter)
+    inputs[0] ? `in="${getInputId(inputs[0], nodes)}"` : ""
+  } ${
+    inputs[1] ? `in2="${getInputId(inputs[1], nodes)}"` : ""
+  } ${Object.entries(filter)
     .map(([k, v]) => {
       if (k === "node") return "";
       if (k === "_overrideId") return "";
@@ -30,7 +45,7 @@ export function generateSingleSvgFilter(
 }
 
 export function generateSvgFilter(
-  nodes: Node<{ filter: any }, string>[],
+  nodes: Node<{ filter: any; filterType: FilterType }, string>[],
   edges: Edge[],
   visited: Set<string>,
   nodeId: string

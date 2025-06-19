@@ -24,7 +24,7 @@ function isValidJSON(x: any) {
   }
 }
 
-type FilterType =
+export type FilterType =
   | "json"
   | "feGaussianBlur"
   | "feTurbulence"
@@ -32,7 +32,9 @@ type FilterType =
   | "feDisplacementMap"
   | "feBlend"
   | "feComposite"
-  | "feConvolveMatrix";
+  | "feConvolveMatrix"
+  | "source"
+  | "feFlood";
 
 export type GenericFilterNodeType = Node<
   { filter: FF; filterType: FilterType },
@@ -67,9 +69,13 @@ export default function GenericFilterNode(
       // svgRef.current.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" >
       // <filter id="f${filtercounter}">${filter}</filter><rect fill="white" width="100%" height="100%" filter="url('#f${filtercounter}')"></rect></svg>`;
       localFilterId.current = filtercounter;
-      svgRef.current.innerHTML = svg
-        .replaceAll("@FILTER_ID", filtercounter.toString())
-        .replaceAll("@FILTER_SOURCE", filter);
+      if (props.data.filterType === "source") {
+        svgRef.current.innerHTML = svg.replaceAll("url('#f@FILTER_ID')", "");
+      } else {
+        svgRef.current.innerHTML = svg
+          .replaceAll("@FILTER_ID", filtercounter.toString())
+          .replaceAll("@FILTER_SOURCE", filter);
+      }
     }
   }, [nodes, edges]);
 
@@ -114,9 +120,14 @@ export default function GenericFilterNode(
       props.id,
       {
         filterType: type,
-        filter: {
-          node: type === "json" ? "feFlood" : type,
-        },
+        filter:
+          type === "source"
+            ? {
+                _overrideId: "SourceGraphic",
+              }
+            : {
+                node: type === "json" ? "feFlood" : type,
+              },
       },
       { replace: true }
     );
@@ -217,6 +228,25 @@ export default function GenericFilterNode(
         ]}
       ></FieldSet>
     );
+  } else if (props.data.filterType === "source") {
+    inputCount = 0;
+    interactable = <></>;
+  } else if (props.data.filterType === "feFlood") {
+    inputCount = 0;
+    interactable = (
+      <FieldSet
+        filter={filter}
+        updateFilter={updateFilter}
+        fields={[
+          ["x", "X"],
+          ["y", "Y"],
+          ["width", "Width"],
+          ["height", "Height"],
+          ["flood-color", "Color"],
+          ["flood-opacity", "Opacity"],
+        ]}
+      ></FieldSet>
+    );
   } else {
     inputCount = 2;
   }
@@ -253,6 +283,7 @@ export default function GenericFilterNode(
           }}
         >
           <option value="json">JSON</option>
+          <option value="source">Source Image</option>
           <option value="feGaussianBlur">Blur</option>
           <option value="feTurbulence">Noise</option>
           <option value="feColorMatrix">Matrix</option>
@@ -260,6 +291,7 @@ export default function GenericFilterNode(
           <option value="feBlend">Blend</option>
           <option value="feComposite">Composite</option>
           <option value="feConvolveMatrix">Convolve</option>
+          <option value="feFlood">Flood</option>
         </select>
         {interactable}
       </div>

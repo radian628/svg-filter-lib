@@ -17,6 +17,7 @@ import TurbulenceNode from "./TurbulenceNode";
 import GenericFilterNode, { GenericFilterNodeType } from "./GenericFilterNode";
 import { fractalNoise } from "./lib";
 import { v4 } from "uuid";
+import { download } from "./download";
 
 const initialNodes: GenericFilterNodeType[] = [
   // {
@@ -162,38 +163,37 @@ function Flow() {
   } else if (submenuType === "import-export") {
     submenu = (
       <>
-        <p>Copy/Paste Configuration Here</p>
-        <textarea
-          value={configuration}
-          onInput={(e) => {
-            setConfiguration(e.currentTarget.value);
+        <p>Open (note that this will overwrite what you currently have open)</p>
+        <input
+          type="file"
+          onChange={async (e) => {
+            if (e.currentTarget.files?.length === 1) {
+              const str = await e.currentTarget.files[0].text();
+              const config = JSON.parse(str);
+              setNodes(config.nodes);
+              setEdges(config.edges);
+              setSvgTemplate(config.svgTemplate);
+              setParameters(config.parameters);
+            }
           }}
-        ></textarea>
-        <br />
+        ></input>
+        <br></br>
         <button
           onClick={() => {
-            const config = JSON.parse(configuration);
-            setNodes(config.nodes);
-            setEdges(config.edges);
-            setSvgTemplate(config.svgTemplate);
-            setParameters(config.parameters);
-          }}
-        >
-          Import Configuration
-        </button>
-        <button
-          onClick={() => {
-            setConfiguration(
-              JSON.stringify({
-                nodes,
-                edges,
-                svgTemplate,
-                parameters,
-              })
+            const file = JSON.stringify({
+              nodes,
+              edges,
+              svgTemplate,
+              parameters,
+            });
+
+            download(
+              `data:application/json;utf8,${encodeURIComponent(file)}`,
+              "filter.json"
             );
           }}
         >
-          Export Configuration
+          Save
         </button>
       </>
     );
@@ -230,7 +230,9 @@ function Flow() {
   return (
     <svgContext.Provider value={{ svg: svgTemplate, parameters }}>
       <ReactFlow
-        style={{ backgroundColor: settings.backgroundColor ?? "white" }}
+        style={{
+          backgroundColor: settings.backgroundColor ?? "white",
+        }}
         viewport={viewport}
         onViewportChange={setViewport}
         nodes={nodes}

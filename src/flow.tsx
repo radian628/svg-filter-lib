@@ -18,6 +18,7 @@ import GenericFilterNode, { GenericFilterNodeType } from "./GenericFilterNode";
 import { fractalNoise } from "./lib";
 import { v4 } from "uuid";
 import { download } from "./download";
+import { StringField } from "./StringField";
 
 const initialNodes: GenericFilterNodeType[] = [
   // {
@@ -136,6 +137,8 @@ function Flow() {
     "svg" | "parameters" | "import-export" | "settings"
   >("svg");
 
+  const [filterName, setFilterName] = useState("my-filter.filtergraph");
+
   let submenu = <></>;
 
   if (submenuType === "svg") {
@@ -163,19 +166,13 @@ function Flow() {
   } else if (submenuType === "import-export") {
     submenu = (
       <>
-        <p>Open (note that this will overwrite what you currently have open)</p>
+        <br></br>
+        <label>Filter Name</label>
+        <br></br>
         <input
-          type="file"
-          onChange={async (e) => {
-            if (e.currentTarget.files?.length === 1) {
-              const str = await e.currentTarget.files[0].text();
-              const config = JSON.parse(str);
-              setNodes(config.nodes);
-              setEdges(config.edges);
-              setSvgTemplate(config.svgTemplate);
-              setParameters(config.parameters);
-            }
-          }}
+          type="text"
+          value={filterName}
+          onInput={(e) => setFilterName(e.currentTarget.value)}
         ></input>
         <br></br>
         <button
@@ -185,16 +182,35 @@ function Flow() {
               edges,
               svgTemplate,
               parameters,
+              filterName,
             });
 
             download(
               `data:application/json;utf8,${encodeURIComponent(file)}`,
-              "filter.json"
+              filterName
             );
           }}
         >
-          Save
+          Download Filter Graph Data
         </button>
+        <br></br>
+        <br></br>
+        <label>Open Filter Graph Data</label>
+        <br></br>
+        <input
+          type="file"
+          onChange={async (e) => {
+            if (e.currentTarget.files?.length === 1) {
+              const str = await e.currentTarget.files[0].text();
+              const config = JSON.parse(str);
+              setNodes(config.nodes);
+              setEdges(config.edges);
+              setSvgTemplate(config.svgTemplate ?? "");
+              setParameters(config.parameters ?? "");
+              setFilterName(config.filterName ?? "my-filter.filtergraph");
+            }
+          }}
+        ></input>
       </>
     );
   } else if (submenuType === "settings") {
